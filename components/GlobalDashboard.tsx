@@ -16,6 +16,7 @@ interface Props {
 const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attendance, bimesters, year }) => {
     const [classFilter, setClassFilter] = useState('ALL');
     const [subjectFilter, setSubjectFilter] = useState('ALL');
+    const [bimesterFilter, setBimesterFilter] = useState('ALL');
 
     const filteredStudents = useMemo(() => {
         return classFilter === 'ALL'
@@ -54,7 +55,6 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
             const end = new Date(bim.end);
 
             filteredStudents.forEach(student => {
-                // Filter by subject if needed
                 Object.entries(attendance).forEach(([subId, subjectRecord]) => {
                     if (subjectFilter !== 'ALL' && subId !== subjectFilter) return;
 
@@ -65,15 +65,19 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                             statuses.forEach(status => {
                                 if (status === AttendanceStatus.PRESENT) bimPresent++;
                                 if (status === AttendanceStatus.ABSENT) bimAbsent++;
-                                if (status === AttendanceStatus.EXCUSED) bimPresent++; // Excused counts as frequency but track separately if needed
+                                if (status === AttendanceStatus.EXCUSED) bimPresent++;
 
                                 if (status !== AttendanceStatus.UNDEFINED) {
                                     bimTotal++;
-                                    // Global totals (Bug fix: calculating here)
-                                    if (status === AttendanceStatus.PRESENT) totalPresent++;
-                                    if (status === AttendanceStatus.ABSENT) totalAbsent++;
-                                    if (status === AttendanceStatus.EXCUSED) totalExcused++;
-                                    totalRecordedLessons++;
+
+                                    // Global totals respect all filters
+                                    const isBimesterMatch = bimesterFilter === 'ALL' || bim.id === bimesterFilter;
+                                    if (isBimesterMatch) {
+                                        if (status === AttendanceStatus.PRESENT) totalPresent++;
+                                        if (status === AttendanceStatus.ABSENT) totalAbsent++;
+                                        if (status === AttendanceStatus.EXCUSED) totalExcused++;
+                                        totalRecordedLessons++;
+                                    }
                                 }
                             });
                         }
@@ -82,6 +86,7 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
             });
 
             return {
+                id: bim.id,
                 name: bim.name,
                 Presenças: bimPresent,
                 Faltas: bimAbsent,
@@ -89,13 +94,42 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
             };
         });
 
-        // Protagonistas at risk (Attendance < 75%)
-        const protagonistsAtRisk = filteredStudents.map(student => {
+        // Protagonistas at risk and individual bimester tracking
+        const protagonistaDetails = filteredStudents.map(student => {
             const subjectRisks: { subjectId: string, name: string, percentage: number, absent: number }[] = [];
             let globalPresent = 0;
             let globalTotal = 0;
             let globalAbsentCount = 0;
 
+            // Bimester-by-bimester individual data
+            const individualBimesterStats = bimesters.map(bim => {
+                let bimP = 0, bimA = 0, bimT = 0;
+                const start = new Date(bim.start);
+                const end = new Date(bim.end);
+
+                Object.entries(attendance).forEach(([subId, subjectRecord]) => {
+                    if (subjectFilter !== 'ALL' && subId !== subjectFilter) return;
+                    const record = subjectRecord[student.id] || {};
+                    Object.entries(record).forEach(([dateStr, statuses]: [string, AttendanceStatus[]]) => {
+                        const date = new Date(dateStr + 'T12:00:00');
+                        if (date >= start && date <= end) {
+                            statuses.forEach(status => {
+                                if (status === AttendanceStatus.PRESENT || status === AttendanceStatus.EXCUSED) bimP++;
+                                if (status === AttendanceStatus.ABSENT) bimA++;
+                                if (status !== AttendanceStatus.UNDEFINED) bimT++;
+                            });
+                        }
+                    });
+                });
+                return {
+                    name: bim.name,
+                    percentage: bimT > 0 ? (bimP / bimT) * 100 : 100,
+                    absent: bimA,
+                    total: bimT
+                };
+            });
+
+            // Calculate overall for current filters
             Object.entries(attendance).forEach(([subId, subjectRecord]) => {
                 const subject = subjects.find(s => s.id === subId);
                 const record = subjectRecord[student.id] || {};
@@ -104,7 +138,21 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                 let sTotal = 0;
                 let sAbsent = 0;
 
-                Object.values(record).forEach((statuses: AttendanceStatus[]) => {
+                Object.entries(record).forEach(([dateStr, statuses]: [string, AttendanceStatus[]]) => {
+                    const date = new Date(dateStr + 'T12:00:00');
+
+                    // Filter by bimester
+                    let inBimester = true;
+                    if (bimesterFilter !== 'ALL') {
+                        const bim = bimesters.find(b => b.id === bimesterFilter);
+                        if (bim) {
+                            const start = new Date(bim.start);
+                            const end = new Date(bim.end);
+                            inBimester = date >= start && date <= end;
+                        }
+                    }
+                    if (!inBimester) return;
+
                     statuses.forEach(status => {
                         if (status === AttendanceStatus.PRESENT) sPresent++;
                         if (status === AttendanceStatus.EXCUSED) sExcused++;
@@ -137,16 +185,21 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                     percentage: globalPercentage,
                     absent: globalAbsentCount,
                     total: globalTotal,
-                    risks: subjectRisks
+                    risks: subjectRisks,
+                    bimesters: individualBimesterStats
                 }
             };
-        }).filter(s => (s.stats.risks.length > 0) && s.status === EnrollmentStatus.ACTIVE)
-            .sort((a, b) => {
-                // Sort by lowest percentage in any subject
-                const minA = Math.min(...a.stats.risks.map(r => r.percentage));
-                const minB = Math.min(...b.stats.risks.map(r => r.percentage));
-                return minA - minB;
-            });
+        });
+
+        const protagonistsAtRisk = protagonistaDetails
+            .filter(s => {
+                const hasRiskInCurrentFilter = bimesterFilter === 'ALL'
+                    ? (s.stats.risks.length > 0 || s.stats.percentage < 75)
+                    : (s.stats.bimesters.find(b => b.name === bimesters.find(bx => bx.id === bimesterFilter)?.name)?.percentage || 100) < 75;
+
+                return hasRiskInCurrentFilter && s.status === EnrollmentStatus.ACTIVE;
+            })
+            .sort((a, b) => a.stats.percentage - b.stats.percentage);
 
         // Class Frequency Chart Data
         const relevantClasses = classFilter === 'ALL'
@@ -163,7 +216,21 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                     if (subjectFilter !== 'ALL' && subId !== subjectFilter) return;
 
                     const record = subjectRecord[s.id] || {};
-                    Object.values(record).forEach((statuses: AttendanceStatus[]) => {
+                    Object.entries(record).forEach(([dateStr, statuses]: [string, AttendanceStatus[]]) => {
+                        const date = new Date(dateStr + 'T12:00:00');
+
+                        // Filter by bimester
+                        let inBimester = true;
+                        if (bimesterFilter !== 'ALL') {
+                            const bim = bimesters.find(b => b.id === bimesterFilter);
+                            if (bim) {
+                                const start = new Date(bim.start);
+                                const end = new Date(bim.end);
+                                inBimester = date >= start && date <= end;
+                            }
+                        }
+                        if (!inBimester) return;
+
                         statuses.forEach(status => {
                             if (status === AttendanceStatus.PRESENT || status === AttendanceStatus.EXCUSED) cPresent++;
                             if (status !== AttendanceStatus.UNDEFINED) cTotal++;
@@ -188,7 +255,7 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
             statusCounts,
             classChartData
         };
-    }, [students, attendance, bimesters, filteredStudents, classes, subjects, subjectFilter]);
+    }, [students, attendance, bimesters, filteredStudents, classes, subjects, subjectFilter, bimesterFilter]);
 
     const globalRate = stats.totalRecordedLessons > 0
         ? ((stats.totalPresent + stats.totalExcused) / stats.totalRecordedLessons * 100).toFixed(1)
@@ -229,6 +296,20 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                 <option value="ALL">Todas as Disciplinas</option>
                                 {subjects.map(s => (
                                     <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                            <Calendar size={16} className="text-slate-400 ml-2" />
+                            <select
+                                value={bimesterFilter}
+                                onChange={(e) => setBimesterFilter(e.target.value)}
+                                className="bg-transparent text-slate-700 text-sm font-medium rounded-lg p-1.5 outline-none cursor-pointer"
+                            >
+                                <option value="ALL">Todos os Bimestres</option>
+                                {bimesters.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -339,15 +420,21 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                     </div>
                 </div>
 
-                {/* Risk List (Updated with Subject Info) */}
+                {/* Individual Tracking List */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <AlertTriangle className="text-rose-500" size={22} />
-                            Atenção Prioritária (Riscos por Disciplina)
-                        </h3>
-                        <div className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full border border-rose-100 uppercase tracking-tighter">
-                            Intervenção Pedagógica Necessária
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <Users className="text-indigo-500" size={22} />
+                                Acompanhamento Individual e Riscos
+                            </h3>
+                            <p className="text-xs text-slate-500">Desempenho detalhado por protagonista e período</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="text-rose-500" size={16} />
+                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-tighter bg-rose-50 px-2 py-1 rounded-full border border-rose-100">
+                                Abaixo de 75% requer atenção
+                            </span>
                         </div>
                     </div>
 
@@ -355,7 +442,7 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                         {stats.protagonistsAtRisk.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-12 text-slate-400 italic bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                                 <UserCheck size={48} className="mb-3 opacity-20" />
-                                <p>Nenhum Protagonista em situação de risco crítico nos filtros selecionados.</p>
+                                <p>Nenhum Protagonista nos critérios de busca atuais.</p>
                             </div>
                         ) : (
                             <table className="w-full text-sm text-left border-separate border-spacing-y-2">
@@ -363,8 +450,10 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                     <tr className="text-slate-400 font-semibold text-[11px] uppercase tracking-wider">
                                         <th className="px-4 py-2">Protagonista</th>
                                         <th className="px-4 py-2">Turma</th>
-                                        <th className="px-4 py-2">Disciplinas em Alerta</th>
-                                        <th className="px-4 py-2 text-right">Média Global</th>
+                                        <th className="px-4 py-2 text-center">Frequência por Bimestre</th>
+                                        <th className="px-4 py-2 text-right">
+                                            {bimesterFilter === 'ALL' ? 'Média Global' : `Média ${bimesters.find(b => b.id === bimesterFilter)?.name}`}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -373,25 +462,37 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                         return (
                                             <tr key={protagonist.id} className="group hover:bg-slate-50 transition-all duration-200">
                                                 <td className="px-4 py-4 bg-white border-y border-l border-slate-100 rounded-l-xl">
-                                                    <span className="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors">{protagonist.name}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-slate-700 group-hover:text-indigo-600 transition-colors line-clamp-1">{protagonist.name}</span>
+                                                        <span className="text-[10px] text-slate-400 uppercase font-medium">{protagonist.status}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-4 bg-white border-y border-slate-100">
-                                                    <span className="text-slate-500 font-medium">{protagonistClass}</span>
+                                                    <span className="text-slate-500 font-medium whitespace-nowrap">{protagonistClass}</span>
                                                 </td>
                                                 <td className="px-4 py-4 bg-white border-y border-slate-100">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {protagonist.stats.risks.map(risk => (
-                                                            <div key={risk.subjectId} className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-100 text-[10px] font-bold">
-                                                                <span className="max-w-[100px] truncate">{risk.name}</span>
-                                                                <span className="px-1 bg-rose-200/50 rounded">{risk.percentage.toFixed(0)}%</span>
+                                                    <div className="flex items-center justify-center gap-4">
+                                                        {protagonist.stats.bimesters.map((bim, idx) => (
+                                                            <div key={idx} className="flex flex-col items-center">
+                                                                <span className="text-[9px] text-slate-400 font-bold uppercase mb-1">{bim.name}</span>
+                                                                <div className={`px-2 py-1 rounded-lg text-[11px] font-black border ${bim.total === 0 ? 'bg-slate-50 text-slate-300 border-slate-100' :
+                                                                    bim.percentage < 75 ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                                                        'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                    }`}>
+                                                                    {bim.total === 0 ? '--' : `${bim.percentage.toFixed(0)}%`}
+                                                                </div>
+                                                                <span className="text-[9px] text-slate-400 mt-0.5">{bim.absent} faltas</span>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 bg-white border-y border-r border-slate-100 rounded-r-xl text-right">
-                                                    <span className={`text-sm font-black ${protagonist.stats.percentage < 75 ? 'text-rose-600' : 'text-slate-700'}`}>
-                                                        {protagonist.stats.percentage.toFixed(1)}%
-                                                    </span>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className={`text-base font-black ${protagonist.stats.percentage < 75 ? 'text-rose-600' : 'text-slate-800'}`}>
+                                                            {protagonist.stats.percentage.toFixed(1)}%
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 font-bold">{protagonist.stats.absent} FALTAS TOTAIS</span>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
