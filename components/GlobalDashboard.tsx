@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Student, ClassGroup, ClassAttendance, BimesterConfig, AttendanceStatus, EnrollmentStatus, Subject } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie, LabelList } from 'recharts';
 import { AlertTriangle, TrendingUp, Users, Calendar, Filter, UserCheck, UserMinus, ArrowRightLeft, HelpCircle, BookOpen, Search, LayoutList, ShieldAlert } from 'lucide-react';
 import { ENROLLMENT_COLORS } from '../constants';
 
@@ -340,8 +340,12 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} />
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 800 }} />
                                     <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '12px' }} cursor={{ fill: '#f8fafc' }} />
-                                    <Bar dataKey="Presenças" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
-                                    <Bar dataKey="Faltas" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={24} />
+                                    <Bar dataKey="Presenças" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24}>
+                                        <LabelList dataKey="Presenças" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: '#10b981' }} />
+                                    </Bar>
+                                    <Bar dataKey="Faltas" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={24}>
+                                        <LabelList dataKey="Faltas" position="top" style={{ fontSize: '10px', fontWeight: 'bold', fill: '#f43f5e' }} />
+                                    </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -354,10 +358,11 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={stats.classChartData} layout="vertical">
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                                    <XAxis type="number" domain={[0, 100]} hide />
+                                    <XAxis type="number" domain={[0, 115]} hide />
                                     <YAxis dataKey="name" type="category" width={70} tick={{ fontSize: 9, fontWeight: 800, fill: '#64748b' }} axisLine={false} tickLine={false} />
                                     <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px' }} />
                                     <Bar dataKey="percentage" radius={[0, 4, 4, 0]} barSize={16}>
+                                        <LabelList dataKey="percentage" position="right" formatter={(val: number) => `${val.toFixed(0)}%`} style={{ fontSize: '10px', fontWeight: 'bold', fill: '#64748b' }} />
                                         {stats.classChartData.map((e, i) => <Cell key={i} fill={e.percentage >= 75 ? '#10b981' : '#f43f5e'} />)}
                                     </Bar>
                                 </BarChart>
