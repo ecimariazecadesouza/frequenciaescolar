@@ -38,7 +38,9 @@ export function useSchoolData() {
         setIsLoading(true);
         const data = await schoolApi.getAllData();
         if (data) {
-            const newClasses = data.classes?.length ? data.classes : [];
+            const newClasses = data.classes?.length
+                ? data.classes.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { numeric: true }))
+                : [];
             const newStudents = data.students?.length ? data.students : [];
             const newSubjects = data.subjects?.length ? data.subjects : [];
             const newAttendance = data.attendance || {};
