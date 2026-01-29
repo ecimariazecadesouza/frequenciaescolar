@@ -93,6 +93,11 @@ tr.attendance-row:hover {
 /* Better Checkboxes/Buttons */
 .attendance-btn {
     transition: all 0.15s ease;
+    min-width: 24px;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .attendance-btn:active {
@@ -101,4 +106,45 @@ tr.attendance-row:hover {
 
 .attendance-btn:hover {
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none !important;
+    }
+
+    input,
+    select,
+    button {
+        font-size: 16px !important;
+        /* Prevents auto-zoom on iOS */
+    }
+
+    .mobile-scroll-hint {
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.05));
+    }
+}
+
+@media (min-width: 769px) {
+    .show-mobile {
+        display: none !important;
+    }
+}
+
+/* Premium Shadows & Borders */
+.premium-shadow {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+.premium-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.premium-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }

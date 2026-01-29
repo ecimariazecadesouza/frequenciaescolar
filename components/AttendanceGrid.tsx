@@ -207,13 +207,13 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                                 disabled={isWeekend || isLocked}
                                 title={`Aula ${idx + 1}`}
                                 className={`
-                                          w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center transition-all duration-150
+                                          w-7 h-7 md:w-6 md:h-6 rounded-lg text-[9px] font-black flex items-center justify-center transition-all duration-150
                                           ${STATUS_COLORS[status]}
-                                          ${isWeekend || isLocked ? 'opacity-30 cursor-not-allowed' : 'shadow-sm hover:scale-110 active:scale-95 border'}
+                                          ${isWeekend || isLocked ? 'opacity-30 cursor-not-allowed' : 'shadow-sm hover:scale-110 active:scale-90 border-2'}
                                         `}
                               >
-                                {status === AttendanceStatus.PRESENT && <Check size={10} strokeWidth={3} />}
-                                {status === AttendanceStatus.ABSENT && <X size={10} strokeWidth={3} />}
+                                {status === AttendanceStatus.PRESENT && <Check size={14} strokeWidth={4} />}
+                                {status === AttendanceStatus.ABSENT && <X size={14} strokeWidth={4} />}
                                 {status === AttendanceStatus.EXCUSED && <Clock size={10} strokeWidth={3} />}
                                 {status === AttendanceStatus.UNDEFINED && <span className="w-1 h-1 rounded-full bg-gray-300" />}
                               </button>

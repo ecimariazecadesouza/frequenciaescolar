@@ -25,23 +25,23 @@ const StudentDetailModal: React.FC<Props> = ({ student, attendanceRecord, onClos
   const bimesterStats = useMemo(() => {
     return bimesters.map(bimester => {
       let present = 0, absent = 0, excused = 0, total = 0;
-      
+
       const start = new Date(bimester.start);
       const end = new Date(bimester.end);
 
       // Iterate through all dates in the record
       Object.entries(attendanceRecord || {}).forEach(([dateStr, statuses]: [string, AttendanceStatus[]]) => {
-         const date = new Date(dateStr + 'T12:00:00');
-         
-         if (date >= start && date <= end) {
-             statuses.forEach(status => {
-                if (status === AttendanceStatus.PRESENT) present++;
-                else if (status === AttendanceStatus.ABSENT) absent++;
-                else if (status === AttendanceStatus.EXCUSED) excused++;
-                
-                if (status !== AttendanceStatus.UNDEFINED) total++;
-             });
-         }
+        const date = new Date(dateStr + 'T12:00:00');
+
+        if (date >= start && date <= end) {
+          statuses.forEach(status => {
+            if (status === AttendanceStatus.PRESENT) present++;
+            else if (status === AttendanceStatus.ABSENT) absent++;
+            else if (status === AttendanceStatus.EXCUSED) excused++;
+
+            if (status !== AttendanceStatus.UNDEFINED) total++;
+          });
+        }
       });
 
       const percentage = total > 0 ? ((present + excused) / total) * 100 : 0;
@@ -53,25 +53,25 @@ const StudentDetailModal: React.FC<Props> = ({ student, attendanceRecord, onClos
 
   // Calculate annual stats for the header
   const annualStats = bimesterStats.reduce((acc, curr) => ({
-      present: acc.present + curr.present,
-      absent: acc.absent + curr.absent,
-      excused: acc.excused + curr.excused,
-      total: acc.total + curr.total
+    present: acc.present + curr.present,
+    absent: acc.absent + curr.absent,
+    excused: acc.excused + curr.excused,
+    total: acc.total + curr.total
   }), { present: 0, absent: 0, excused: 0, total: 0 });
-  
-  const annualPercentage = annualStats.total > 0 
-    ? ((annualStats.present + annualStats.excused) / annualStats.total) * 100 
+
+  const annualPercentage = annualStats.total > 0
+    ? ((annualStats.present + annualStats.excused) / annualStats.total) * 100
     : 0;
 
   const handleGenerateReport = async () => {
     setLoading(true);
     // Construct a stats object for the AI service
     const statsForAi: StudentStats = {
-        totalLessons: annualStats.total,
-        present: annualStats.present,
-        absent: annualStats.absent,
-        excused: annualStats.excused,
-        percentage: annualPercentage
+      totalLessons: annualStats.total,
+      present: annualStats.present,
+      absent: annualStats.absent,
+      excused: annualStats.excused,
+      percentage: annualPercentage
     };
     const report = await generateStudentReport(student, statsForAi);
     setAiReport(report);
@@ -89,22 +89,22 @@ const StudentDetailModal: React.FC<Props> = ({ student, attendanceRecord, onClos
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
-        
+
         {/* Header */}
         <div className="bg-slate-900 text-white p-6 flex justify-between items-start shrink-0">
           <div className="flex items-center gap-4">
-             <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center border-2 border-slate-600">
-                 <User size={32} className="text-slate-300" />
-             </div>
-             <div>
-                 <h2 className="text-xl font-bold">{student.name}</h2>
-                 <div className="flex items-center gap-3 mt-1">
-                    <span className="text-slate-400 text-sm">Ano Letivo: {year}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded font-bold ${isRisk ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
-                        {annualPercentage.toFixed(1)}% Anual
-                    </span>
-                 </div>
-             </div>
+            <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center border-2 border-slate-600">
+              <User size={32} className="text-slate-300" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">{student.name}</h2>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-slate-400 text-sm">Ano Letivo: {year}</span>
+                <span className={`text-xs px-2 py-0.5 rounded font-bold ${isRisk ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                  {annualPercentage.toFixed(1)}% Anual
+                </span>
+              </div>
+            </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={24} />
@@ -112,114 +112,114 @@ const StudentDetailModal: React.FC<Props> = ({ student, attendanceRecord, onClos
         </div>
 
         <div className="overflow-y-auto p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* Left Column: Stats & Bimesters */}
-                <div className="lg:col-span-2 space-y-8">
-                    
-                    {/* Bimester Table */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <Award size={16} /> Desempenho por Bimestre
-                        </h3>
-                        <div className="overflow-hidden border border-gray-200 rounded-lg">
-                            <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-500">Período</th>
-                                        <th className="px-4 py-3 text-center font-medium text-emerald-600">Presenças</th>
-                                        <th className="px-4 py-3 text-center font-medium text-rose-600">Faltas</th>
-                                        <th className="px-4 py-3 text-center font-medium text-amber-600">Justif.</th>
-                                        <th className="px-4 py-3 text-right font-medium text-gray-700">% Freq</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
-                                    {bimesterStats.map((b) => (
-                                        <tr key={b.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 font-medium text-gray-900">{b.name}</td>
-                                            <td className="px-4 py-3 text-center text-gray-600">{b.present}</td>
-                                            <td className="px-4 py-3 text-center text-gray-600">{b.absent}</td>
-                                            <td className="px-4 py-3 text-center text-gray-600">{b.excused}</td>
-                                            <td className="px-4 py-3 text-right font-bold text-gray-800">
-                                                <span className={`${b.percentage < 75 && b.total > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                                    {b.total === 0 ? '-' : `${b.percentage.toFixed(0)}%`}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot className="bg-gray-50 font-semibold">
-                                    <tr>
-                                        <td className="px-4 py-3">Total Anual</td>
-                                        <td className="px-4 py-3 text-center">{annualStats.present}</td>
-                                        <td className="px-4 py-3 text-center">{annualStats.absent}</td>
-                                        <td className="px-4 py-3 text-center">{annualStats.excused}</td>
-                                        <td className="px-4 py-3 text-right">{annualPercentage.toFixed(1)}%</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Chart Section */}
-                    <div className="h-64 w-full bg-slate-50 rounded-xl p-4 border border-slate-100">
-                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Visualização Anual</h3>
-                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={chartData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                              >
-                                {chartData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip />
-                              <Legend verticalAlign="middle" align="right" layout="vertical" />
-                            </PieChart>
-                          </ResponsiveContainer>
-                    </div>
+            {/* Left Column: Stats & Bimesters */}
+            <div className="lg:col-span-2 space-y-8">
+
+              {/* Bimester Table */}
+              <div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Award size={16} className="text-indigo-600" /> Desempenho por Bimestre
+                </h3>
+                <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-sm custom-scrollbar bg-white">
+                  <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Período</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-black text-emerald-600 uppercase tracking-widest">P</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-black text-rose-600 uppercase tracking-widest">F</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-black text-amber-600 uppercase tracking-widest">J</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">%</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {bimesterStats.map((b) => (
+                        <tr key={b.id} className="hover:bg-indigo-50/30 transition-colors">
+                          <td className="px-4 py-3 font-black text-slate-700">{b.name}</td>
+                          <td className="px-4 py-3 text-center text-slate-600 font-bold">{b.present}</td>
+                          <td className="px-4 py-3 text-center text-rose-500 font-bold">{b.absent}</td>
+                          <td className="px-4 py-3 text-center text-amber-500 font-bold">{b.excused}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`font-black text-xs ${b.percentage < 75 && b.total > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                              {b.total === 0 ? '-' : `${b.percentage.toFixed(0)}%`}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-slate-50/50 font-black text-xs">
+                      <tr>
+                        <td className="px-4 py-4 text-slate-500 uppercase tracking-tighter">Total Anual</td>
+                        <td className="px-4 py-4 text-center text-slate-700">{annualStats.present}</td>
+                        <td className="px-4 py-4 text-center text-rose-500">{annualStats.absent}</td>
+                        <td className="px-4 py-4 text-center text-amber-500">{annualStats.excused}</td>
+                        <td className="px-4 py-4 text-right text-indigo-600">{annualPercentage.toFixed(1)}%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
+              </div>
 
-                {/* AI Column */}
-                <div className="flex flex-col h-full bg-indigo-50/50 rounded-xl p-6 border border-indigo-100">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="p-2 bg-indigo-600 rounded-lg">
-                            <Sparkles size={18} className="text-white" />
-                        </div>
-                        <h3 className="font-bold text-indigo-900">Conselheiro IA</h3>
-                    </div>
-                    
-                    <div className="flex-1 text-sm text-slate-600 leading-relaxed overflow-y-auto max-h-[300px] mb-4">
-                        {loading ? (
-                             <div className="flex items-center justify-center h-full text-indigo-400 gap-2">
-                                 <Loader2 className="animate-spin" size={20} />
-                                 <span>Analisando perfil...</span>
-                             </div>
-                        ) : aiReport ? (
-                            <p className="whitespace-pre-wrap">{aiReport}</p>
-                        ) : (
-                            <div className="space-y-2">
-                                <p>Clique abaixo para gerar uma análise pedagógica baseada nos dados anuais e bimestrais.</p>
-                                <p className="text-xs text-slate-500">A IA analisará tendências de faltas e justificativas para sugerir intervenções.</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <button 
-                        onClick={handleGenerateReport}
-                        disabled={loading}
-                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 mt-auto"
+              {/* Chart Section */}
+              <div className="h-64 w-full bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Visualização Anual</h3>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
                     >
-                        {loading ? 'Gerando...' : 'Gerar Relatório'}
-                    </button>
-                </div>
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                    <Legend verticalAlign="middle" align="right" layout="vertical" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
+
+            {/* AI Column */}
+            <div className="flex flex-col h-full bg-indigo-50/50 rounded-xl p-6 border border-indigo-100">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-indigo-600 rounded-lg">
+                  <Sparkles size={18} className="text-white" />
+                </div>
+                <h3 className="font-bold text-indigo-900">Conselheiro IA</h3>
+              </div>
+
+              <div className="flex-1 text-sm text-slate-600 leading-relaxed overflow-y-auto max-h-[300px] mb-4">
+                {loading ? (
+                  <div className="flex items-center justify-center h-full text-indigo-400 gap-2">
+                    <Loader2 className="animate-spin" size={20} />
+                    <span>Analisando perfil...</span>
+                  </div>
+                ) : aiReport ? (
+                  <p className="whitespace-pre-wrap">{aiReport}</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p>Clique abaixo para gerar uma análise pedagógica baseada nos dados anuais e bimestrais.</p>
+                    <p className="text-xs text-slate-500">A IA analisará tendências de faltas e justificativas para sugerir intervenções.</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleGenerateReport}
+                disabled={loading}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 mt-auto"
+              >
+                {loading ? 'Gerando...' : 'Gerar Relatório'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
