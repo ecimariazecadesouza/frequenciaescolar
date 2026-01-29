@@ -89,19 +89,19 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
           <thead className="bg-slate-800 text-white sticky top-0 z-20">
             <tr>
               <th
-                className="sticky bg-slate-800 p-3 border-b border-slate-700 text-center font-medium z-30"
+                className="static md:sticky bg-slate-800 p-3 border-b border-slate-700 text-center font-medium z-30"
                 style={{ left: 0, minWidth: IDX_WIDTH }}
               >
                 #
               </th>
               <th
-                className="sticky bg-slate-800 p-3 border-b border-slate-700 font-medium z-30"
+                className="static md:sticky bg-slate-800 p-3 border-b border-slate-700 font-medium z-30"
                 style={{ left: NAME_LEFT, minWidth: NAME_WIDTH }}
               >
                 Nome do Protagonista
               </th>
               <th
-                className="sticky bg-slate-800 p-3 border-b border-slate-700 font-medium border-r border-slate-600 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] z-30"
+                className="static md:sticky bg-slate-800 p-3 border-b border-slate-700 font-medium border-r border-slate-600 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.3)] z-30"
                 style={{ left: STATUS_LEFT, minWidth: STATUS_WIDTH }}
               >
                 Situação
@@ -137,9 +137,9 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                 );
               })}
               {/* Summary Columns Header */}
-              <th className="sticky right-[120px] bg-slate-700 p-2 min-w-[60px] text-center text-xs font-semibold border-l border-slate-600 z-20">Faltas</th>
-              <th className="sticky right-[60px] bg-slate-700 p-2 min-w-[60px] text-center text-xs font-semibold z-20">Pres.</th>
-              <th className="sticky right-0 bg-slate-700 p-2 min-w-[60px] text-center text-xs font-semibold z-20">% Mês</th>
+              <th className="static md:sticky right-[120px] bg-slate-700 p-2 min-w-[60px] text-center text-xs font-semibold border-l border-slate-600 z-20">Faltas</th>
+              <th className="static md:sticky right-[60px] bg-slate-700 p-2 min-w-[60px] text-center text-xs font-semibold z-20">Pres.</th>
+              <th className="static md:sticky right-0 bg-slate-700 p-2 min-w-[60px] text-center text-xs font-semibold z-20">% Mês</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -150,13 +150,13 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
               return (
                 <tr key={student.id} className="hover:bg-blue-50 transition-colors group">
                   <td
-                    className="sticky bg-white group-hover:bg-blue-50 p-2 text-center text-gray-500 border-r border-gray-100 font-mono text-xs z-10"
+                    className="static md:sticky bg-white group-hover:bg-blue-50 p-2 text-center text-gray-500 border-r border-gray-100 font-mono text-xs z-10"
                     style={{ left: 0 }}
                   >
                     {(index + 1).toString().padStart(2, '0')}
                   </td>
                   <td
-                    className="sticky bg-white group-hover:bg-blue-50 p-2 border-r border-gray-200 z-10"
+                    className="static md:sticky bg-white group-hover:bg-blue-50 p-2 border-r border-gray-200 z-10"
                     style={{ left: NAME_LEFT }}
                   >
                     <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                     </div>
                   </td>
                   <td
-                    className="sticky bg-white group-hover:bg-blue-50 p-2 border-r border-gray-200 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]"
+                    className="static md:sticky bg-white group-hover:bg-blue-50 p-2 border-r border-gray-200 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]"
                     style={{ left: STATUS_LEFT }}
                   >
                     <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${ENROLLMENT_COLORS[student.status] || ENROLLMENT_COLORS[EnrollmentStatus.OTHER]}`}>
@@ -225,13 +225,13 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
                   })}
 
                   {/* Summary Columns Body */}
-                  <td className="sticky right-[120px] bg-white group-hover:bg-blue-50 p-2 text-center text-sm font-medium text-rose-600 border-l border-gray-200 z-10">
+                  <td className="static md:sticky right-[120px] bg-white group-hover:bg-blue-50 p-2 text-center text-sm font-medium text-rose-600 border-l border-gray-200 z-10">
                     {stats.absent}
                   </td>
-                  <td className="sticky right-[60px] bg-white group-hover:bg-blue-50 p-2 text-center text-sm font-medium text-emerald-600 z-10">
+                  <td className="static md:sticky right-[60px] bg-white group-hover:bg-blue-50 p-2 text-center text-sm font-medium text-emerald-600 z-10">
                     {stats.present}
                   </td>
-                  <td className={`sticky right-0 bg-white group-hover:bg-blue-50 p-2 text-center text-sm font-bold z-10 ${isLowAttendance ? 'text-rose-600' : 'text-slate-700'}`}>
+                  <td className={`static md:sticky right-0 bg-white group-hover:bg-blue-50 p-2 text-center text-sm font-bold z-10 ${isLowAttendance ? 'text-rose-600' : 'text-slate-700'}`}>
                     {stats.totalLessons === 0 ? '-' : `${stats.percentage.toFixed(0)}%`}
                   </td>
                 </tr>
