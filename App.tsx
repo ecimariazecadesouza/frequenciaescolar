@@ -36,13 +36,16 @@ const App: React.FC = () => {
         const loadInitialData = async () => {
             setIsLoading(true);
             const data = await schoolApi.getAllData();
+
+            // Se conseguimos conectar com a API (mesmo que venha vazio)
             if (data) {
-                if (data.classes?.length) setClasses(data.classes);
-                if (data.students?.length) setAllStudents(data.students);
-                if (data.attendance) setAttendance(data.attendance);
-                if (data.bimesters?.length) setBimesters(data.bimesters);
+                // Se a API retornar dados, usamos eles. Se não, limpamos os mocks para começar do zero.
+                setClasses(data.classes && data.classes.length > 0 ? data.classes : []);
+                setAllStudents(data.students && data.students.length > 0 ? data.students : []);
+                setAttendance(data.attendance || {});
+                if (data.bimesters && data.bimesters.length > 0) setBimesters(data.bimesters);
+
                 if (typeof data.settings === 'object') {
-                    // Filter daily lesson counts from settings
                     const counts: Record<string, number> = {};
                     Object.entries(data.settings).forEach(([k, v]) => {
                         if (k.startsWith('lessonCount_')) counts[k.replace('lessonCount_', '')] = Number(v);

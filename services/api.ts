@@ -3,29 +3,22 @@ const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
 const fetchApi = async (action: string, data?: any) => {
     if (!API_URL) {
-        console.error("VITE_APPS_SCRIPT_URL não configurada no .env");
+        console.error("VITE_APPS_SCRIPT_URL não configurada.");
         return null;
     }
 
     try {
-        const response = await fetch(API_URL, {
+        // Para ESCRITA (POST), o Google Apps Script exige no-cors para evitar problemas de Preflight
+        await fetch(API_URL, {
             method: 'POST',
-            mode: 'no-cors', // Apps Script requires no-cors for POST sometimes or proper redirect handling
+            mode: 'no-cors',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'text/plain', // Usar text/plain evita o preflight OPTIONS do navegador
             },
             body: JSON.stringify({ action, data }),
         });
 
-        // Warning: With 'no-cors', we can't read the response body.
-        // However, Apps Script Web Apps usually work better with standard fetches if configured correctly.
-        // Let's use a more robust way that handles the redirect:
-
-        const robustResponse = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action, data }),
-        });
-        return await robustResponse.json();
+        return { success: true }; // No modo no-cors não conseguimos ler o corpo, mas assumimos sucesso se não der erro
 
     } catch (error) {
         console.error(`API Error (${action}):`, error);
@@ -34,11 +27,18 @@ const fetchApi = async (action: string, data?: any) => {
 };
 
 export const schoolApi = {
-    // Lote de dados inicial
+    // Lote de dados inicial (GET)
     getAllData: async () => {
+        if (!API_URL) return null;
         try {
             const response = await fetch(API_URL);
-            return await response.json();
+            const text = await response.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error("Erro ao converter resposta para JSON:", text);
+                return null;
+            }
         } catch (error) {
             console.error("Error fetching all data:", error);
             return null;
