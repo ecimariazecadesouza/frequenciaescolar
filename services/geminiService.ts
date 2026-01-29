@@ -15,10 +15,10 @@ export const generateStudentReport = async (student: Student, stats: StudentStat
   if (!ai) return "Erro: Chave de API não configurada.";
 
   const prompt = `
-    Você é um coordenador pedagógico experiente. Analise os dados de frequência do aluno abaixo e gere um breve relatório (máximo 3 frases) para o professor.
+    Você é um coordenador pedagógico experiente. Analise os dados de frequência do protagonista abaixo e gere um breve relatório (máximo 3 frases) para o professor.
     Seja construtivo. Se a frequência for alta, elogie. Se for baixa, sugira intervenção.
     
-    Aluno: ${student.name}
+    Protagonista: ${student.name}
     Situação da Matrícula: ${student.status}
     Total Dias Letivos: ${stats.totalLessons}
     Presenças: ${stats.present}
@@ -43,7 +43,7 @@ export const generateStudentReport = async (student: Student, stats: StudentStat
 };
 
 export const analyzeClassTrends = async (overallPercentage: number, totalAbsences: number): Promise<string> => {
-   const ai = getAiClient();
+  const ai = getAiClient();
   if (!ai) return "Erro: Chave de API não configurada.";
 
   const prompt = `

@@ -67,7 +67,7 @@ const AttendanceGrid: React.FC<AttendanceGridProps> = ({
   if (students.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-lg border border-dashed border-slate-300 m-4">
-        <p>Nenhum aluno nesta turma ou filtro selecionado.</p>
+        <p>Nenhum protagonista nesta turma ou filtro selecionado.</p>
         <p className="text-sm">Adicione protagonistas na aba "Protagonistas".</p>
       </div>
     );

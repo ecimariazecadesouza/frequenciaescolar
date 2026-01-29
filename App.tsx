@@ -133,7 +133,7 @@ const App: React.FC = () => {
     };
 
     const handleDeleteClass = (id: string) => {
-        if (window.confirm('Tem certeza que deseja excluir esta turma? Os alunos vinculados ficarão "Sem Turma".')) {
+        if (window.confirm('Tem certeza que deseja excluir esta turma? Os protagonistas vinculados ficarão "Sem Turma".')) {
             actions.handleDeleteClass(id);
             if (selectedClassId === id) {
                 setViewMode('DASHBOARD');
@@ -390,7 +390,7 @@ const App: React.FC = () => {
                                             value={statusFilter}
                                             onChange={(e) => setStatusFilter(e.target.value as EnrollmentStatus | 'ALL')}
                                         >
-                                            <option value="ALL">Todos os Alunos</option>
+                                            <option value="ALL">Todos os Protagonistas</option>
                                             {Object.values(EnrollmentStatus).map(s => (
                                                 <option key={s} value={s}>{s}</option>
                                             ))}
@@ -444,6 +444,7 @@ const App: React.FC = () => {
                     <GlobalDashboard
                         students={allStudents}
                         classes={classes}
+                        subjects={subjects}
                         attendance={attendance}
                         bimesters={bimesters}
                         year={year}
