@@ -1,5 +1,5 @@
 
-const API_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
+const API_URL = "https://script.google.com/macros/s/AKfycbxgd6B6CwlRAz2fVsIzznA7oxwH2sQQKLaOD6zyp_BE4QfsId8seFMMXFztBOerF_iSqw/exec";
 
 const fetchApi = async (action: string, data?: any) => {
     if (!API_URL) {
