@@ -51,6 +51,14 @@ const App: React.FC = () => {
     const [editClassName, setEditClassName] = useState('');
     const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
     const [editSubjectName, setEditSubjectName] = useState('');
+    const [localBimesters, setLocalBimesters] = useState<BimesterConfig[]>([]);
+
+    // Sync local bimesters when modal opens
+    useEffect(() => {
+        if (isConfigBimesters) {
+            setLocalBimesters(bimesters);
+        }
+    }, [isConfigBimesters, bimesters]);
 
     // Filters
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL');
@@ -245,6 +253,15 @@ const App: React.FC = () => {
                             )}
                         </div>
                     ))}
+
+                    <button
+                        onClick={() => setIsConfigBimesters(true)}
+                        className="w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-3 mt-8 hover:bg-slate-800 text-slate-400"
+                    >
+                        <Settings size={20} />
+                        <span className="text-sm">Configurações</span>
+                    </button>
+
                     {isAddingSubject ? (
                         <div className="p-3 bg-slate-800 rounded-xl mt-3 animate-fade-in">
                             <input
@@ -494,8 +511,8 @@ const App: React.FC = () => {
                         </div>
                         <div className="p-6 md:p-8">
                             <div className="space-y-3">
-                                {bimesters.map((bim) => (
-                                    <div key={bim.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border border-slate-100 rounded-2xl bg-slate-50 transition-all hover:bg-slate-100/50">
+                                {localBimesters.map((bim, idx) => (
+                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border border-slate-100 rounded-2xl bg-slate-50 transition-all hover:bg-slate-100/50">
                                         <span className="text-xs font-black text-slate-800 uppercase tracking-tight w-24 shrink-0">{bim.name}</span>
                                         <div className="flex items-center gap-2 flex-1">
                                             <input
@@ -503,8 +520,8 @@ const App: React.FC = () => {
                                                 className="flex-1 p-2 bg-white text-sm font-bold border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                                                 value={bim.start}
                                                 onChange={(e) => {
-                                                    const updated = bimesters.map(b => b.id === bim.id ? { ...b, start: e.target.value } : b);
-                                                    actions.handleUpdateBimesters(updated);
+                                                    const updated = localBimesters.map((b, i) => i === idx ? { ...b, start: e.target.value } : b);
+                                                    setLocalBimesters(updated);
                                                 }}
                                             />
                                             <div className="w-4 h-px bg-slate-300 shrink-0" />
@@ -513,19 +530,42 @@ const App: React.FC = () => {
                                                 className="flex-1 p-2 bg-white text-sm font-bold border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
                                                 value={bim.end}
                                                 onChange={(e) => {
-                                                    const updated = bimesters.map(b => b.id === bim.id ? { ...b, end: e.target.value } : b);
-                                                    actions.handleUpdateBimesters(updated);
+                                                    const updated = localBimesters.map((b, i) => i === idx ? { ...b, end: e.target.value } : b);
+                                                    setLocalBimesters(updated);
                                                 }}
                                             />
+                                            {localBimesters.length > 4 && (
+                                                <button
+                                                    onClick={() => setLocalBimesters(prev => prev.filter((_, i) => i !== idx))}
+                                                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                                    title="Remover bimestre duplicado"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="mt-8">
+                            <div className="mt-8 flex gap-3">
+                                {localBimesters.length < 4 && (
+                                    <button
+                                        onClick={() => {
+                                            const newId = localBimesters.length + 1;
+                                            setLocalBimesters([...localBimesters, { id: newId, name: `${newId}º Bimestre`, start: '', end: '' }]);
+                                        }}
+                                        className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 text-sm font-black uppercase tracking-widest transition-all"
+                                    >
+                                        Adicionar
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => setIsConfigBimesters(false)}
-                                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 text-sm font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98]"
+                                    onClick={() => {
+                                        actions.handleUpdateBimesters(localBimesters);
+                                        setIsConfigBimesters(false);
+                                    }}
+                                    className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 text-sm font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98]"
                                 >
                                     Salvar Alterações
                                 </button>
