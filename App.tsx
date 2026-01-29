@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-    Loader2, ChevronLeft, ChevronRight, Plus, GraduationCap, School, X, Settings, Filter, CalendarRange, LayoutDashboard, Users, Pencil, Trash2, Check, Clock
+    Loader2, ChevronLeft, ChevronRight, Plus, GraduationCap, School, X, Settings, Filter, CalendarRange, LayoutDashboard, Users, Pencil, Trash2, Check, Clock, BookOpen
 } from 'lucide-react';
 import { useSchoolData } from './hooks/useSchoolData';
 import {
@@ -10,7 +10,7 @@ import {
     MONTH_NAMES,
     BIMESTERS as INITIAL_BIMESTERS
 } from './constants';
-import { Student, ClassAttendance, AttendanceStatus, ClassGroup, EnrollmentStatus, BimesterConfig } from './types';
+import { Student, ClassAttendance, AttendanceStatus, ClassGroup, EnrollmentStatus, BimesterConfig, Subject } from './types';
 import AttendanceGrid from './components/AttendanceGrid';
 import StudentDetailModal from './components/StudentDetailModal';
 import GlobalDashboard from './components/GlobalDashboard';
@@ -22,6 +22,7 @@ const App: React.FC = () => {
     const {
         classes,
         allStudents,
+        subjects,
         attendance,
         bimesters,
         dailyLessonCounts,
@@ -32,34 +33,43 @@ const App: React.FC = () => {
     // Navigation State
     const [viewMode, setViewMode] = useState<ViewMode>('DASHBOARD');
     const [selectedClassId, setSelectedClassId] = useState<string>('');
+    const [selectedSubjectId, setSelectedSubjectId] = useState<string>('');
     const [year, setYear] = useState<number>(CURRENT_YEAR);
     const [month, setMonth] = useState<number>(new Date().getMonth()); // 0-11
 
     // UI/Modal State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [isAddingClass, setIsAddingClass] = useState(false);
+    const [isAddingSubject, setIsAddingSubject] = useState(false);
     const [isConfigBimesters, setIsConfigBimesters] = useState(false);
 
-    // Edit Class State
+    // Edit State
     const [editingClassId, setEditingClassId] = useState<string | null>(null);
     const [editClassName, setEditClassName] = useState('');
+    const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+    const [editSubjectName, setEditSubjectName] = useState('');
 
     // Filters
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL');
 
     // Form State
     const [newEntryName, setNewEntryName] = useState('');
+    const [newSubjectName, setNewSubjectName] = useState('');
 
-    // Set initial selected class when data loads
+    // Set initial selections when data loads
     useEffect(() => {
         if (classes.length > 0 && !selectedClassId) {
             setSelectedClassId(classes[0].id);
         }
-    }, [classes, selectedClassId]);
+        if (subjects.length > 0 && !selectedSubjectId) {
+            setSelectedSubjectId(subjects[0].id);
+        }
+    }, [classes, subjects, selectedClassId, selectedSubjectId]);
 
     // --- DERIVED DATA ---
 
     const currentClass = useMemo(() => classes.find(c => c.id === selectedClassId), [classes, selectedClassId]);
+    const currentSubject = useMemo(() => subjects.find(s => s.id === selectedSubjectId), [subjects, selectedSubjectId]);
 
     const classStudents = useMemo(() => {
         if (!currentClass) return [];
@@ -91,6 +101,22 @@ const App: React.FC = () => {
         setIsAddingClass(false);
     };
 
+    const handleCreateSubject = () => {
+        if (!newSubjectName.trim()) return;
+        const newSub: Subject = { id: `s-${Date.now()}`, name: newSubjectName };
+        actions.handleUpsertSubject(newSub);
+        setSelectedSubjectId(newSub.id);
+        setNewSubjectName('');
+        setIsAddingSubject(false);
+    };
+
+    const handleSaveEditSubject = () => {
+        if (!editSubjectName.trim() || !editingSubjectId) return;
+        actions.handleUpsertSubject({ id: editingSubjectId, name: editSubjectName });
+        setEditingSubjectId(null);
+        setEditSubjectName('');
+    };
+
     const handleStartEditClass = (c: ClassGroup) => {
         setEditingClassId(c.id);
         setEditClassName(c.name);
@@ -116,10 +142,19 @@ const App: React.FC = () => {
         }
     };
 
+    const handleDeleteSubject = (id: string) => {
+        if (window.confirm('Tem certeza que deseja excluir esta disciplina? Os registros de frequência vinculados serão mantidos na planilha, mas não aparecerão no app.')) {
+            actions.handleDeleteSubject(id);
+            if (selectedSubjectId === id) {
+                setSelectedSubjectId(subjects.find(s => s.id !== id)?.id || '');
+            }
+        }
+    };
+
     return (
         <div className="flex h-screen bg-slate-100 overflow-hidden">
 
-            {/* Sidebar - Class Management */}
+            {/* Sidebar - Class & Subject Management */}
             <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0">
                 <div className="p-4 border-b border-slate-800 flex items-center gap-2">
                     <School className="text-indigo-400" />
@@ -150,6 +185,68 @@ const App: React.FC = () => {
                         <Users size={18} />
                         <span className="text-sm font-medium">Protagonistas</span>
                     </button>
+
+                    {/* Disciplinas Section */}
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 mt-6">Minhas Disciplinas</div>
+                    {subjects.map(s => (
+                        <div key={s.id} className={`group flex items-center gap-1 w-full rounded-md transition-colors pr-2 ${selectedSubjectId === s.id
+                            ? 'bg-slate-800 text-white border border-slate-700'
+                            : 'hover:bg-slate-800/50'
+                            }`}>
+                            {editingSubjectId === s.id ? (
+                                <div className="flex items-center gap-1 flex-1 p-1">
+                                    <input
+                                        className="w-full bg-slate-700 text-white text-xs p-1.5 rounded border border-slate-600 focus:outline-none focus:border-indigo-500"
+                                        value={editSubjectName}
+                                        onChange={e => setEditSubjectName(e.target.value)}
+                                        autoFocus
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') handleSaveEditSubject();
+                                            if (e.key === 'Escape') setEditingSubjectId(null);
+                                        }}
+                                    />
+                                    <button onClick={handleSaveEditSubject} className="text-emerald-400 hover:text-emerald-300 p-1"><Check size={14} /></button>
+                                </div>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setSelectedSubjectId(s.id)}
+                                        className="flex-1 text-left px-3 py-2 flex items-center gap-2 overflow-hidden"
+                                    >
+                                        <BookOpen size={16} className={selectedSubjectId === s.id ? "text-indigo-400" : "text-slate-500"} />
+                                        <span className={`truncate text-sm ${selectedSubjectId === s.id ? 'font-bold' : 'font-medium'}`}>{s.name}</span>
+                                    </button>
+                                    <div className="hidden group-hover:flex items-center gap-1">
+                                        <button onClick={(e) => { e.stopPropagation(); setEditingSubjectId(s.id); setEditSubjectName(s.name); }} className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-700"><Pencil size={12} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(s.id); }} className="text-slate-400 hover:text-rose-400 p-1 rounded hover:bg-slate-700"><Trash2 size={12} /></button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    ))}
+                    {isAddingSubject ? (
+                        <div className="p-2 bg-slate-800 rounded mt-2">
+                            <input
+                                autoFocus
+                                className="w-full bg-slate-700 text-white text-sm p-1.5 rounded border border-slate-600 mb-2 focus:outline-none focus:border-indigo-500"
+                                placeholder="Nome da Disciplina"
+                                value={newSubjectName}
+                                onChange={e => setNewSubjectName(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleCreateSubject()}
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={handleCreateSubject} className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2 py-1 rounded flex-1">Salvar</button>
+                                <button onClick={() => setIsAddingSubject(false)} className="bg-slate-700 hover:bg-slate-600 text-white text-xs px-2 py-1 rounded flex-1">Cancelar</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setIsAddingSubject(true)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 hover:text-white hover:bg-slate-800 rounded-md transition-colors border border-dashed border-slate-700 mt-2"
+                        >
+                            <Plus size={16} /> Nova Disciplina
+                        </button>
+                    )}
 
                     <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 mt-6">Minhas Turmas</div>
                     {classes.map(c => (
@@ -237,8 +334,15 @@ const App: React.FC = () => {
 
                     <div className="flex items-center gap-4">
                         {viewMode === 'CLASS' ? (
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200">
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-bold text-slate-800">{currentClass?.name}</h2>
+                                    <span className="text-slate-300">|</span>
+                                    <h3 className="text-base font-medium text-indigo-600 flex items-center gap-1">
+                                        <BookOpen size={16} /> {currentSubject?.name || "Sem Disciplina"}
+                                    </h3>
+                                </div>
+                                <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200 w-fit">
                                     <button
                                         onClick={() => {
                                             if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -320,8 +424,9 @@ const App: React.FC = () => {
                             students={classStudents}
                             dates={dateList}
                             attendance={attendance}
+                            subjectId={selectedSubjectId}
                             dailyLessonCounts={dailyLessonCounts}
-                            onToggleStatus={actions.handleToggleStatus}
+                            onToggleStatus={(sid, date, idx) => actions.handleToggleStatus(sid, date, idx, selectedSubjectId)}
                             onSelectStudent={setSelectedStudent}
                             onUpdateLessonCount={actions.handleUpdateLessonCount}
                         />
@@ -403,7 +508,7 @@ const App: React.FC = () => {
             {selectedStudent && (
                 <StudentDetailModal
                     student={selectedStudent}
-                    attendanceRecord={attendance[selectedStudent.id] || {}}
+                    attendanceRecord={(attendance[selectedSubjectId] || {})[selectedStudent.id] || {}}
                     year={year}
                     bimesters={bimesters}
                     onClose={() => setSelectedStudent(null)}

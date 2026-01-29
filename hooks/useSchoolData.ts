@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Student, ClassGroup, ClassAttendance, BimesterConfig, EnrollmentStatus, AttendanceStatus } from '../types';
+import { Student, ClassGroup, ClassAttendance, BimesterConfig, EnrollmentStatus, AttendanceStatus, Subject } from '../types';
 import { schoolApi } from '../services/api';
 import { MOCK_CLASSES, MOCK_STUDENTS_POOL, BIMESTERS as INITIAL_BIMESTERS } from '../constants';
 
-const CACHE_KEY = 'frequencia_escolar_cache';
+const CACHE_KEY = 'frequencia_escolar_cache_v2';
 
 export function useSchoolData() {
     const [classes, setClasses] = useState<ClassGroup[]>(MOCK_CLASSES);
     const [allStudents, setAllStudents] = useState<Student[]>(MOCK_STUDENTS_POOL);
+    const [subjects, setSubjects] = useState<Subject[]>([]);
     const [attendance, setAttendance] = useState<ClassAttendance>({});
     const [bimesters, setBimesters] = useState<BimesterConfig[]>(INITIAL_BIMESTERS);
     const [dailyLessonCounts, setDailyLessonCounts] = useState<Record<string, number>>({});
@@ -22,6 +23,7 @@ export function useSchoolData() {
                 const parsed = JSON.parse(cached);
                 if (parsed.classes) setClasses(parsed.classes);
                 if (parsed.allStudents) setAllStudents(parsed.allStudents);
+                if (parsed.subjects) setSubjects(parsed.subjects);
                 if (parsed.attendance) setAttendance(parsed.attendance);
                 if (parsed.bimesters) setBimesters(parsed.bimesters);
                 if (parsed.dailyLessonCounts) setDailyLessonCounts(parsed.dailyLessonCounts);
@@ -38,6 +40,7 @@ export function useSchoolData() {
         if (data) {
             const newClasses = data.classes?.length ? data.classes : [];
             const newStudents = data.students?.length ? data.students : [];
+            const newSubjects = data.subjects?.length ? data.subjects : [];
             const newAttendance = data.attendance || {};
             const newBimesters = data.bimesters?.length ? data.bimesters : INITIAL_BIMESTERS;
 
@@ -50,6 +53,7 @@ export function useSchoolData() {
 
             setClasses(newClasses);
             setAllStudents(newStudents);
+            setSubjects(newSubjects);
             setAttendance(newAttendance);
             setBimesters(newBimesters);
             setDailyLessonCounts(counts);
@@ -58,6 +62,7 @@ export function useSchoolData() {
             localStorage.setItem(CACHE_KEY, JSON.stringify({
                 classes: newClasses,
                 allStudents: newStudents,
+                subjects: newSubjects,
                 attendance: newAttendance,
                 bimesters: newBimesters,
                 dailyLessonCounts: counts
@@ -81,9 +86,11 @@ export function useSchoolData() {
         schoolApi.updateSetting(`lessonCount_${date}`, newCount);
     };
 
-    const handleToggleStatus = (studentId: string, date: string, lessonIndex: number) => {
+    const handleToggleStatus = (studentId: string, date: string, lessonIndex: number, subjectId: string) => {
         setAttendance(prev => {
-            const studentRecord = { ...(prev[studentId] || {}) };
+            const subjectAttendance = { ...(prev[subjectId] || {}) };
+            const studentRecord = { ...(subjectAttendance[studentId] || {}) };
+
             const currentDayLimit = dailyLessonCounts[date] || 1;
 
             const currentDailyStatuses = studentRecord[date]
@@ -104,11 +111,12 @@ export function useSchoolData() {
 
             currentDailyStatuses[lessonIndex] = nextStatus;
             studentRecord[date] = currentDailyStatuses;
+            subjectAttendance[studentId] = studentRecord;
 
-            const next = { ...prev, [studentId]: studentRecord };
+            const next = { ...prev, [subjectId]: subjectAttendance };
 
             // Optimistic Write
-            schoolApi.saveAttendance(studentId, date, currentDailyStatuses);
+            schoolApi.saveAttendance(studentId, date, currentDailyStatuses, subjectId);
 
             return next;
         });
@@ -155,6 +163,20 @@ export function useSchoolData() {
         schoolApi.deleteClass(id);
     };
 
+    const handleUpsertSubject = (subjectData: Subject) => {
+        setSubjects(prev => {
+            const exists = prev.find(s => s.id === subjectData.id);
+            if (exists) return prev.map(s => s.id === subjectData.id ? subjectData : s);
+            return [...prev, subjectData];
+        });
+        schoolApi.upsertSubject(subjectData);
+    };
+
+    const handleDeleteSubject = (id: string) => {
+        setSubjects(prev => prev.filter(s => s.id !== id));
+        schoolApi.deleteSubject(id);
+    };
+
     const handleUpdateBimesters = (updated: BimesterConfig[]) => {
         setBimesters(updated);
         schoolApi.updateBimesters(updated);
@@ -163,6 +185,7 @@ export function useSchoolData() {
     return {
         classes,
         allStudents,
+        subjects,
         attendance,
         bimesters,
         dailyLessonCounts,
@@ -178,6 +201,8 @@ export function useSchoolData() {
             handleBatchAddStudents,
             handleUpsertClass,
             handleDeleteClass,
+            handleUpsertSubject,
+            handleDeleteSubject,
             handleUpdateBimesters
         }
     };

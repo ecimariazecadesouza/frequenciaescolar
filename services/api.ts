@@ -46,16 +46,20 @@ export const schoolApi = {
     },
 
     // Frequência
-    saveAttendance: (studentId: string, date: string, statusArray: any[]) =>
-        fetchApi("SAVE_ATTENDANCE", { studentId, date, statusArray }),
+    saveAttendance: (studentId: string, date: string, statusArray: any[], subjectId: string) =>
+        fetchApi("SAVE_ATTENDANCE", { studentId, date, statusArray, subjectId }),
 
-    // Alunos
+    // Protagonistas
     upsertStudent: (student: any) => fetchApi("UPDATE_STUDENT", student),
     deleteStudent: (id: string) => fetchApi("DELETE_STUDENT", { id }),
 
     // Turmas
     upsertClass: (classData: any) => fetchApi("UPSERT_CLASS", classData),
     deleteClass: (id: string) => fetchApi("DELETE_CLASS", { id }),
+
+    // Disciplinas
+    upsertSubject: (subject: any) => fetchApi("UPSERT_SUBJECT", subject),
+    deleteSubject: (id: string) => fetchApi("DELETE_SUBJECT", { id }),
 
     // Configurações
     updateBimesters: (bimesters: any[]) => fetchApi("UPDATE_BIMESTERS", bimesters),

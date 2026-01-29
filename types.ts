@@ -15,7 +15,6 @@ export interface Student {
 export interface ClassGroup {
   id: string;
   name: string;
-  // students array removed as source of truth, derived from Student.classId instead
 }
 
 export enum AttendanceStatus {
@@ -25,18 +24,25 @@ export enum AttendanceStatus {
   UNDEFINED = '-',
 }
 
+export interface Subject {
+  id: string;
+  name: string;
+}
+
 // Map Date String (YYYY-MM-DD) -> Array of Statuses (for multiple lessons per day)
 export interface AttendanceRecord {
   [date: string]: AttendanceStatus[];
 }
 
-// Map Student ID -> AttendanceRecord
+// Map Subject ID -> (Map Student ID -> AttendanceRecord)
 export interface ClassAttendance {
-  [studentId: string]: AttendanceRecord;
+  [subjectId: string]: {
+    [studentId: string]: AttendanceRecord;
+  };
 }
 
 export interface StudentStats {
-  totalLessons: number; // Changed from totalDays to totalLessons
+  totalLessons: number;
   present: number;
   absent: number;
   excused: number;
