@@ -58,7 +58,15 @@ const App: React.FC = () => {
         if (isConfigBimesters) {
             // Se bimesters vier da API mas as datas forem vazias, usamos INITIAL_BIMESTERS
             const safeBimesters = bimesters.length >= 4 ? bimesters : INITIAL_BIMESTERS;
-            setLocalBimesters(safeBimesters);
+
+            // Garantir que não haja 'undefined' nas datas para evitar inputs incontrolados
+            const sanitized = safeBimesters.map(b => ({
+                ...b,
+                start: b.start || '',
+                end: b.end || ''
+            }));
+
+            setLocalBimesters(sanitized);
         }
     }, [isConfigBimesters, bimesters]);
 
