@@ -422,8 +422,8 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                     <tr className="bg-slate-50/80 border-b border-slate-100">
                                         <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Protagonista / Status</th>
                                         <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Turma</th>
-                                        <th className="px-6 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest min-w-[300px]">Evolução Bimestral</th>
-                                        <th className="px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Métricas do Período</th>
+                                        <th className="px-6 py-4 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest min-w-[300px]">Frequência por Bimestre</th>
+                                        <th className="px-6 py-4 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Média do Período (P% / F%)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -446,7 +446,7 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                                             <div key={idx} className="flex flex-col items-center p-2 rounded-xl bg-white border border-slate-200/50 min-w-[70px]">
                                                                 <span className="text-[8px] font-black text-slate-400 uppercase mb-1">{bim.name}</span>
                                                                 <div className={`text-xs font-black ${bim.total === 0 ? 'text-slate-300' :
-                                                                        bim.percentage < 75 ? 'text-rose-500' : 'text-emerald-500'
+                                                                    bim.percentage < 75 ? 'text-rose-500' : 'text-emerald-500'
                                                                     }`}>
                                                                     {bim.total === 0 ? '---' : `${bim.percentage.toFixed(0)}%`}
                                                                 </div>
@@ -458,14 +458,12 @@ const GlobalDashboard: React.FC<Props> = ({ students, classes, subjects, attenda
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex flex-col items-end">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                                                                P: {s.stats.percentage.toFixed(0)}%
-                                                            </div>
-                                                            <div className="text-xs font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100">
-                                                                F: {s.stats.absencePercentage.toFixed(0)}%
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="text-[10px] font-black text-emerald-600">P: {s.stats.percentage.toFixed(1)}%</span>
+                                                                <span className="text-[10px] font-black text-rose-600">F: {s.stats.absencePercentage.toFixed(1)}%</span>
                                                             </div>
                                                         </div>
-                                                        <span className="text-[9px] text-slate-400 font-black uppercase mt-1">Total {s.stats.total} aulas</span>
+                                                        <span className="text-[9px] text-slate-400 font-black uppercase mt-1 leading-none">{s.stats.absent} Faltas em {s.stats.total} aulas</span>
                                                     </div>
                                                 </td>
                                             </tr>
