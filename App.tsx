@@ -56,7 +56,9 @@ const App: React.FC = () => {
     // Sync local bimesters when modal opens
     useEffect(() => {
         if (isConfigBimesters) {
-            setLocalBimesters(bimesters);
+            // Se bimesters vier da API mas as datas forem vazias, usamos INITIAL_BIMESTERS
+            const safeBimesters = bimesters.length >= 4 ? bimesters : INITIAL_BIMESTERS;
+            setLocalBimesters(safeBimesters);
         }
     }, [isConfigBimesters, bimesters]);
 
@@ -348,14 +350,7 @@ const App: React.FC = () => {
                         </button>
                     )}
 
-                    <div className="mt-12 px-2 border-t border-slate-800 pt-6 px-1">
-                        <button
-                            onClick={() => { setIsConfigBimesters(true); setIsSidebarOpen(false); }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
-                        >
-                            <Settings size={20} /> Configurar Bimestres
-                        </button>
-                    </div>
+                    {/* Redundant bottom button removed to avoid confusion */}
                 </div>
 
                 <div className="p-6 border-t border-slate-800 text-[10px] font-black text-center text-slate-600 uppercase tracking-widest">
@@ -443,10 +438,10 @@ const App: React.FC = () => {
                             {/* Additional mobile actions if needed */}
                         </div>
                     </div>
-                </header>
+                </header >
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-hidden relative">
+                < div className="flex-1 overflow-hidden relative" >
                     {viewMode === 'CLASS' ? (
                         <main className="h-full flex flex-col p-4 md:p-6 bg-slate-100/30">
                             <div className="flex flex-wrap gap-2 md:gap-4 mb-4 text-[10px] font-black uppercase tracking-widest px-1">
@@ -494,109 +489,115 @@ const App: React.FC = () => {
                             year={year}
                         />
                     )}
-                </div>
-            </div>
+                </div >
+            </div >
 
             {/* Bimester Config Modal */}
-            {isConfigBimesters && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsConfigBimesters(false)} />
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in relative">
-                        <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
-                            <div>
-                                <h3 className="font-black text-lg uppercase tracking-tight flex items-center gap-2"><CalendarRange size={22} className="text-indigo-400" /> Ciclo Escolar</h3>
-                                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Configuração de Bimestres</p>
+            {
+                isConfigBimesters && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsConfigBimesters(false)} />
+                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fade-in relative">
+                            <div className="bg-slate-900 text-white p-6 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-black text-lg uppercase tracking-tight flex items-center gap-2"><CalendarRange size={22} className="text-indigo-400" /> Ciclo Escolar</h3>
+                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Configuração de Bimestres</p>
+                                </div>
+                                <button onClick={() => setIsConfigBimesters(false)} className="p-2 bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
                             </div>
-                            <button onClick={() => setIsConfigBimesters(false)} className="p-2 bg-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
-                        </div>
-                        <div className="p-6 md:p-8">
-                            <div className="space-y-3">
-                                {localBimesters.map((bim, idx) => (
-                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border border-slate-100 rounded-2xl bg-slate-50 transition-all hover:bg-slate-100/50">
-                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight w-24 shrink-0">{bim.name}</span>
-                                        <div className="flex items-center gap-2 flex-1">
-                                            <input
-                                                type="date"
-                                                className="flex-1 p-2 bg-white text-sm font-bold border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                                value={bim.start}
-                                                onChange={(e) => {
-                                                    const updated = localBimesters.map((b, i) => i === idx ? { ...b, start: e.target.value } : b);
-                                                    setLocalBimesters(updated);
-                                                }}
-                                            />
-                                            <div className="w-4 h-px bg-slate-300 shrink-0" />
-                                            <input
-                                                type="date"
-                                                className="flex-1 p-2 bg-white text-sm font-bold border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                                value={bim.end}
-                                                onChange={(e) => {
-                                                    const updated = localBimesters.map((b, i) => i === idx ? { ...b, end: e.target.value } : b);
-                                                    setLocalBimesters(updated);
-                                                }}
-                                            />
-                                            {localBimesters.length > 4 && (
-                                                <button
-                                                    onClick={() => setLocalBimesters(prev => prev.filter((_, i) => i !== idx))}
-                                                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                                                    title="Remover bimestre duplicado"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
+                            <div className="p-6 md:p-8">
+                                <div className="space-y-3">
+                                    {localBimesters.map((bim, idx) => (
+                                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border border-slate-100 rounded-2xl bg-slate-50 transition-all hover:bg-slate-100/50">
+                                            <span className="text-xs font-black text-slate-800 uppercase tracking-tight w-24 shrink-0">{bim.name}</span>
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <input
+                                                    type="date"
+                                                    className="flex-1 p-2 bg-white text-sm font-bold border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                    value={bim.start}
+                                                    onChange={(e) => {
+                                                        const updated = localBimesters.map((b, i) => i === idx ? { ...b, start: e.target.value } : b);
+                                                        setLocalBimesters(updated);
+                                                    }}
+                                                />
+                                                <div className="w-4 h-px bg-slate-300 shrink-0" />
+                                                <input
+                                                    type="date"
+                                                    className="flex-1 p-2 bg-white text-sm font-bold border border-slate-200 rounded-xl text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                                    value={bim.end}
+                                                    onChange={(e) => {
+                                                        const updated = localBimesters.map((b, i) => i === idx ? { ...b, end: e.target.value } : b);
+                                                        setLocalBimesters(updated);
+                                                    }}
+                                                />
+                                                {localBimesters.length > 4 && (
+                                                    <button
+                                                        onClick={() => setLocalBimesters(prev => prev.filter((_, i) => i !== idx))}
+                                                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                                        title="Remover bimestre duplicado"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
 
-                            <div className="mt-8 flex gap-3">
-                                {localBimesters.length < 4 && (
+                                <div className="mt-8 flex gap-3">
+                                    {localBimesters.length < 4 && (
+                                        <button
+                                            onClick={() => {
+                                                const newId = localBimesters.length + 1;
+                                                setLocalBimesters([...localBimesters, { id: newId, name: `${newId}º Bimestre`, start: '', end: '' }]);
+                                            }}
+                                            className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 text-sm font-black uppercase tracking-widest transition-all"
+                                        >
+                                            Adicionar
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => {
-                                            const newId = localBimesters.length + 1;
-                                            setLocalBimesters([...localBimesters, { id: newId, name: `${newId}º Bimestre`, start: '', end: '' }]);
+                                            actions.handleUpdateBimesters(localBimesters);
+                                            setIsConfigBimesters(false);
                                         }}
-                                        className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 text-sm font-black uppercase tracking-widest transition-all"
+                                        className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 text-sm font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98]"
                                     >
-                                        Adicionar
+                                        Salvar Alterações
                                     </button>
-                                )}
-                                <button
-                                    onClick={() => {
-                                        actions.handleUpdateBimesters(localBimesters);
-                                        setIsConfigBimesters(false);
-                                    }}
-                                    className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 text-sm font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98]"
-                                >
-                                    Salvar Alterações
-                                </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Detail Modal */}
-            {selectedStudent && (
-                <StudentDetailModal
-                    student={selectedStudent}
-                    attendanceRecord={(attendance[selectedSubjectId] || {})[selectedStudent.id] || {}}
-                    year={year}
-                    bimesters={bimesters}
-                    onClose={() => setSelectedStudent(null)}
-                />
-            )}
+            {
+                selectedStudent && (
+                    <StudentDetailModal
+                        student={selectedStudent}
+                        attendanceRecord={(attendance[selectedSubjectId] || {})[selectedStudent.id] || {}}
+                        year={year}
+                        bimesters={bimesters}
+                        onClose={() => setSelectedStudent(null)}
+                    />
+                )
+            }
 
             {/* Loading Overlay */}
-            {isLoading && (
-                <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/60 backdrop-blur-lg">
-                    <div className="relative">
-                        <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                        <School className="absolute inset-0 m-auto text-indigo-600" size={24} />
+            {
+                isLoading && (
+                    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/60 backdrop-blur-lg">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                            <School className="absolute inset-0 m-auto text-indigo-600" size={24} />
+                        </div>
+                        <p className="text-slate-800 font-black uppercase tracking-[0.2em] text-[10px] mt-6 animate-pulse">Sincronizando Dados</p>
                     </div>
-                    <p className="text-slate-800 font-black uppercase tracking-[0.2em] text-[10px] mt-6 animate-pulse">Sincronizando Dados</p>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 
