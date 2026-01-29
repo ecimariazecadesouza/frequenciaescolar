@@ -449,7 +449,7 @@ const App: React.FC = () => {
                 </header >
 
                 {/* Content Area */}
-                < div className="flex-1 overflow-hidden relative" >
+                <div className="flex-1 overflow-hidden relative flex flex-col">
                     {viewMode === 'CLASS' ? (
                         <main className="h-full flex flex-col p-4 md:p-6 bg-slate-100/30">
                             <div className="flex flex-wrap gap-2 md:gap-4 mb-4 text-[10px] font-black uppercase tracking-widest px-1">
