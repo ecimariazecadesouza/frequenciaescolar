@@ -177,9 +177,12 @@ export function useSchoolData() {
         schoolApi.deleteSubject(id);
     };
 
-    const handleUpdateBimesters = (updated: BimesterConfig[]) => {
+    const handleUpdateBimesters = async (updated: BimesterConfig[]) => {
+        setIsLoading(true);
         setBimesters(updated);
-        schoolApi.updateBimesters(updated);
+        await schoolApi.updateBimesters(updated);
+        // Pequeno delay para garantir que o GAS processou antes de recarregar
+        setTimeout(() => refreshData(), 1000);
     };
 
     return {
