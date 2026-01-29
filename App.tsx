@@ -1,4 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import {
+    Loader2, ChevronLeft, ChevronRight, Plus, GraduationCap, School, X, Settings, Filter, CalendarRange, LayoutDashboard, Users, Pencil, Trash2, Check, Clock
+} from 'lucide-react';
+import { useSchoolData } from './hooks/useSchoolData';
 import {
     MOCK_STUDENTS_POOL,
     MOCK_CLASSES,
@@ -11,56 +15,23 @@ import AttendanceGrid from './components/AttendanceGrid';
 import StudentDetailModal from './components/StudentDetailModal';
 import GlobalDashboard from './components/GlobalDashboard';
 import StudentManager from './components/StudentManager';
-import { ChevronLeft, ChevronRight, Plus, GraduationCap, School, X, Settings, Filter, CalendarRange, LayoutDashboard, Users, Pencil, Trash2, Check, Clock, Loader2 } from 'lucide-react';
-import { schoolApi } from './services/api';
 
 type ViewMode = 'CLASS' | 'DASHBOARD' | 'STUDENTS';
 
 const App: React.FC = () => {
-    // --- STATE ---
-
-    // Data State
-    const [classes, setClasses] = useState<ClassGroup[]>(MOCK_CLASSES);
-    const [allStudents, setAllStudents] = useState<Student[]>(MOCK_STUDENTS_POOL);
-    const [attendance, setAttendance] = useState<ClassAttendance>({});
-    const [bimesters, setBimesters] = useState<BimesterConfig[]>(INITIAL_BIMESTERS);
-
-    // Configuration State: Map date string -> number of lessons (default 1)
-    const [dailyLessonCounts, setDailyLessonCounts] = useState<Record<string, number>>({});
-
-    // API/Loading State
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Load Data from API
-    React.useEffect(() => {
-        const loadInitialData = async () => {
-            setIsLoading(true);
-            const data = await schoolApi.getAllData();
-
-            // Se conseguimos conectar com a API (mesmo que venha vazio)
-            if (data) {
-                // Se a API retornar dados, usamos eles. Se não, limpamos os mocks para começar do zero.
-                setClasses(data.classes && data.classes.length > 0 ? data.classes : []);
-                setAllStudents(data.students && data.students.length > 0 ? data.students : []);
-                setAttendance(data.attendance || {});
-                if (data.bimesters && data.bimesters.length > 0) setBimesters(data.bimesters);
-
-                if (typeof data.settings === 'object') {
-                    const counts: Record<string, number> = {};
-                    Object.entries(data.settings).forEach(([k, v]) => {
-                        if (k.startsWith('lessonCount_')) counts[k.replace('lessonCount_', '')] = Number(v);
-                    });
-                    setDailyLessonCounts(counts);
-                }
-            }
-            setIsLoading(false);
-        };
-        loadInitialData();
-    }, []);
+    const {
+        classes,
+        allStudents,
+        attendance,
+        bimesters,
+        dailyLessonCounts,
+        isLoading,
+        actions
+    } = useSchoolData();
 
     // Navigation State
-    const [viewMode, setViewMode] = useState<ViewMode>('CLASS');
-    const [selectedClassId, setSelectedClassId] = useState<string>(MOCK_CLASSES[0]?.id || '');
+    const [viewMode, setViewMode] = useState<ViewMode>('DASHBOARD');
+    const [selectedClassId, setSelectedClassId] = useState<string>('');
     const [year, setYear] = useState<number>(CURRENT_YEAR);
     const [month, setMonth] = useState<number>(new Date().getMonth()); // 0-11
 
@@ -79,121 +50,45 @@ const App: React.FC = () => {
     // Form State
     const [newEntryName, setNewEntryName] = useState('');
 
+    // Set initial selected class when data loads
+    useEffect(() => {
+        if (classes.length > 0 && !selectedClassId) {
+            setSelectedClassId(classes[0].id);
+        }
+    }, [classes, selectedClassId]);
+
     // --- DERIVED DATA ---
 
     const currentClass = useMemo(() => classes.find(c => c.id === selectedClassId), [classes, selectedClassId]);
 
     const classStudents = useMemo(() => {
         if (!currentClass) return [];
-
-        // Filter by Student.classId
         let filtered = allStudents.filter(s => s.classId === currentClass.id);
-
-        // Apply Status Filter
         if (statusFilter !== 'ALL') {
             filtered = filtered.filter(s => s.status === statusFilter);
         }
-
         return filtered;
     }, [currentClass, allStudents, statusFilter]);
 
-    const daysInMonth = useMemo(() => {
-        return new Date(year, month + 1, 0).getDate();
-    }, [year, month]);
-
     const dateList = useMemo(() => {
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
         const dates: string[] = [];
         for (let i = 1; i <= daysInMonth; i++) {
             dates.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`);
         }
         return dates;
-    }, [year, month, daysInMonth]);
+    }, [year, month]);
 
-    // --- HANDLERS ---
-
-    const handleUpdateLessonCount = (date: string, newCount: number) => {
-        setDailyLessonCounts(prev => ({
-            ...prev,
-            [date]: newCount
-        }));
-        schoolApi.updateSetting(`lessonCount_${date}`, newCount);
-    };
-
-    const handleToggleStatus = (studentId: string, date: string, lessonIndex: number) => {
-        setAttendance(prev => {
-            const studentRecord = prev[studentId] || {};
-
-            const currentDayLimit = dailyLessonCounts[date] || 1;
-
-            // Get existing array or create a new filled one based on current limit for that day
-            const currentDailyStatuses = studentRecord[date]
-                ? [...studentRecord[date]]
-                : Array(currentDayLimit).fill(AttendanceStatus.UNDEFINED);
-
-            // Ensure array is big enough for the index being toggled (in case config changed)
-            while (currentDailyStatuses.length <= lessonIndex) {
-                currentDailyStatuses.push(AttendanceStatus.UNDEFINED);
-            }
-
-            const currentStatus = currentDailyStatuses[lessonIndex] || AttendanceStatus.UNDEFINED;
-
-            let nextStatus: AttendanceStatus;
-
-            if (currentStatus === AttendanceStatus.UNDEFINED) nextStatus = AttendanceStatus.PRESENT;
-            else if (currentStatus === AttendanceStatus.PRESENT) nextStatus = AttendanceStatus.ABSENT;
-            else if (currentStatus === AttendanceStatus.ABSENT) nextStatus = AttendanceStatus.EXCUSED;
-            else nextStatus = AttendanceStatus.UNDEFINED;
-
-            currentDailyStatuses[lessonIndex] = nextStatus;
-
-            const nextDaily = { ...studentRecord, [date]: currentDailyStatuses };
-
-            // Persist to API
-            schoolApi.saveAttendance(studentId, date, currentDailyStatuses);
-
-            return { ...prev, [studentId]: nextDaily };
-        });
-    };
-
-    // Student Management Handlers
-    const handleAddStudent = (student: Student) => {
-        setAllStudents(prev => [...prev, student]);
-        schoolApi.upsertStudent(student);
-    };
-
-    const handleUpdateStudent = (updatedStudent: Student) => {
-        setAllStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
-        schoolApi.upsertStudent(updatedStudent);
-    };
-
-    const handleDeleteStudent = (id: string) => {
-        setAllStudents(prev => prev.filter(s => s.id !== id));
-        schoolApi.deleteStudent(id);
-    };
-
-    const handleBatchAddStudents = (names: string[], classId: string, status: EnrollmentStatus) => {
-        const newStudents: Student[] = names.map((name, idx) => ({
-            id: `s-${Date.now()}-${idx}`,
-            name: name,
-            classId: classId,
-            status: status
-        }));
-        setAllStudents(prev => [...prev, ...newStudents]);
-    };
+    // --- HANDLERS (Wrapper) ---
 
     const handleCreateClass = () => {
         if (!newEntryName.trim()) return;
-        const newClass: ClassGroup = {
-            id: `c-${Date.now()}`,
-            name: newEntryName,
-            // Students start empty, populatd via StudentManager
-        };
-        setClasses([...classes, newClass]);
+        const newClass: ClassGroup = { id: `c-${Date.now()}`, name: newEntryName };
+        actions.handleUpsertClass(newClass);
         setSelectedClassId(newClass.id);
         setViewMode('CLASS');
         setNewEntryName('');
         setIsAddingClass(false);
-        schoolApi.upsertClass(newClass);
     };
 
     const handleStartEditClass = (c: ClassGroup) => {
@@ -202,33 +97,23 @@ const App: React.FC = () => {
     };
 
     const handleSaveEditClass = () => {
-        const updated = { ...classes.find(c => c.id === editingClassId)!, name: editClassName };
-        setClasses(prev => prev.map(c => c.id === editingClassId ? updated : c));
+        if (!editClassName.trim() || !editingClassId) return;
+        const existing = classes.find(c => c.id === editingClassId);
+        if (existing) {
+            actions.handleUpsertClass({ ...existing, name: editClassName });
+        }
         setEditingClassId(null);
         setEditClassName('');
-        schoolApi.upsertClass(updated);
     };
 
     const handleDeleteClass = (id: string) => {
         if (window.confirm('Tem certeza que deseja excluir esta turma? Os alunos vinculados ficarão "Sem Turma".')) {
-            setClasses(prev => prev.filter(c => c.id !== id));
-            // Remove class association from students
-            setAllStudents(prev => prev.map(s => s.classId === id ? { ...s, classId: undefined } : s));
-
+            actions.handleDeleteClass(id);
             if (selectedClassId === id) {
                 setViewMode('DASHBOARD');
                 setSelectedClassId('');
             }
-            schoolApi.deleteClass(id);
         }
-    };
-
-    const updateBimesterConfig = (id: number, field: 'start' | 'end', value: string) => {
-        const updated = bimesters.map(b =>
-            b.id === id ? { ...b, [field]: value } : b
-        );
-        setBimesters(updated);
-        schoolApi.updateBimesters(updated);
     };
 
     return (
@@ -436,19 +321,19 @@ const App: React.FC = () => {
                             dates={dateList}
                             attendance={attendance}
                             dailyLessonCounts={dailyLessonCounts}
-                            onToggleStatus={handleToggleStatus}
+                            onToggleStatus={actions.handleToggleStatus}
                             onSelectStudent={setSelectedStudent}
-                            onUpdateLessonCount={handleUpdateLessonCount}
+                            onUpdateLessonCount={actions.handleUpdateLessonCount}
                         />
                     </main>
                 ) : viewMode === 'STUDENTS' ? (
                     <StudentManager
                         students={allStudents}
                         classes={classes}
-                        onAddStudent={handleAddStudent}
-                        onUpdateStudent={handleUpdateStudent}
-                        onDeleteStudent={handleDeleteStudent}
-                        onBatchAdd={handleBatchAddStudents}
+                        onAddStudent={actions.handleAddStudent}
+                        onUpdateStudent={actions.handleUpdateStudent}
+                        onDeleteStudent={actions.handleDeleteStudent}
+                        onBatchAdd={actions.handleBatchAddStudents}
                     />
                 ) : (
                     <GlobalDashboard
@@ -481,14 +366,20 @@ const App: React.FC = () => {
                                                 type="date"
                                                 className="flex-1 p-1 text-sm border rounded text-slate-600"
                                                 value={bim.start}
-                                                onChange={(e) => updateBimesterConfig(bim.id, 'start', e.target.value)}
+                                                onChange={(e) => {
+                                                    const updated = bimesters.map(b => b.id === bim.id ? { ...b, start: e.target.value } : b);
+                                                    actions.handleUpdateBimesters(updated);
+                                                }}
                                             />
                                             <span className="text-slate-400 text-xs">até</span>
                                             <input
                                                 type="date"
                                                 className="flex-1 p-1 text-sm border rounded text-slate-600"
                                                 value={bim.end}
-                                                onChange={(e) => updateBimesterConfig(bim.id, 'end', e.target.value)}
+                                                onChange={(e) => {
+                                                    const updated = bimesters.map(b => b.id === bim.id ? { ...b, end: e.target.value } : b);
+                                                    actions.handleUpdateBimesters(updated);
+                                                }}
                                             />
                                         </div>
                                     </div>
